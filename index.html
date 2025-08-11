@@ -4,6 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kezhi Lu - AAII, UTS</title>
+  
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'GA_MEASUREMENT_ID'); // Replace with your actual GA ID
+  </script>
+  
+  <!-- Microsoft Clarity (Optional - for heatmaps and session recordings) -->
+  <script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "YOUR_CLARITY_ID"); // Replace with your Clarity ID
+  </script>
+  
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
@@ -38,6 +57,91 @@
       max-width: 1200px;
       margin: 0 auto;
       padding: 0 20px;
+    }
+
+    /* Visitor Counter Widget */
+    .visitor-widget {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--bg-primary);
+      padding: 1rem;
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      z-index: 999;
+      min-width: 200px;
+      transition: all 0.3s ease;
+    }
+
+    .visitor-widget:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .visitor-widget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .visitor-widget-title {
+      font-weight: 600;
+      color: var(--primary-color);
+      font-size: 0.875rem;
+    }
+
+    .visitor-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .visitor-stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+
+    .visitor-stat-label {
+      color: var(--text-secondary);
+    }
+
+    .visitor-stat-value {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .visitor-location {
+      margin-top: 0.5rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--border-color);
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .minimize-btn {
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: color 0.3s ease;
+    }
+
+    .minimize-btn:hover {
+      color: var(--primary-color);
+    }
+
+    .visitor-widget.minimized {
+      min-width: auto;
+    }
+
+    .visitor-widget.minimized .visitor-content {
+      display: none;
     }
 
     /* Navigation */
@@ -79,6 +183,125 @@
 
     .nav-links a:hover {
       color: var(--primary-color);
+    }
+
+    /* Analytics Dashboard Button */
+    .analytics-btn {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: var(--primary-color);
+      color: white;
+      padding: 0.75rem 1.25rem;
+      border-radius: 50px;
+      box-shadow: var(--shadow-lg);
+      cursor: pointer;
+      border: none;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+      z-index: 998;
+    }
+
+    .analytics-btn:hover {
+      background: var(--secondary-color);
+      transform: translateY(-2px);
+    }
+
+    /* Analytics Modal */
+    .analytics-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .analytics-modal.active {
+      display: flex;
+    }
+
+    .analytics-content {
+      background: var(--bg-primary);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 800px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    .analytics-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .analytics-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
+    .close-modal {
+      cursor: pointer;
+      font-size: 1.5rem;
+      color: var(--text-secondary);
+      transition: color 0.3s ease;
+    }
+
+    .close-modal:hover {
+      color: var(--text-primary);
+    }
+
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .analytics-card {
+      background: var(--bg-secondary);
+      padding: 1.5rem;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .analytics-card-title {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+
+    .analytics-card-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
+    .analytics-chart {
+      background: var(--bg-secondary);
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+    }
+
+    .chart-title {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
     }
 
     /* Hero Section */
@@ -389,6 +612,14 @@
       .interests-grid {
         grid-template-columns: 1fr;
       }
+
+      .visitor-widget {
+        bottom: 80px;
+      }
+
+      .analytics-btn {
+        bottom: 80px;
+      }
     }
   </style>
 </head>
@@ -608,16 +839,93 @@
     </div>
   </footer>
 
-  <script>
-    // Smooth scrolling for navigation links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        document.querySelector(this.getAttribute('href')).scrollIntoView({
-          behavior: 'smooth'
-        });
-      });
-    });
-  </script>
-</body>
-</html>
+  <!-- Visitor Counter Widget -->
+  <div class="visitor-widget" id="visitorWidget">
+    <div class="visitor-widget-header">
+      <span class="visitor-widget-title">
+        <i class="fas fa-chart-line"></i> Visitor Stats
+      </span>
+      <i class="fas fa-minus minimize-btn" id="minimizeBtn"></i>
+    </div>
+          <div class="visitor-content" id="visitorContent">
+      <div class="visitor-stats">
+        <div class="visitor-stat">
+          <span class="visitor-stat-label">Today</span>
+          <span class="visitor-stat-value" id="todayVisits">0</span>
+        </div>
+        <div class="visitor-stat">
+          <span class="visitor-stat-label">This Week</span>
+          <span class="visitor-stat-value" id="weekVisits">0</span>
+        </div>
+        <div class="visitor-stat">
+          <span class="visitor-stat-label">Total</span>
+          <span class="visitor-stat-value" id="totalVisits">0</span>
+        </div>
+      </div>
+      <div class="visitor-location" id="visitorLocation">
+        <i class="fas fa-map-marker-alt"></i>
+        <span id="locationText">Loading...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics Dashboard Button -->
+  <button class="analytics-btn" id="analyticsBtn">
+    <i class="fas fa-chart-bar"></i>
+    View Analytics
+  </button>
+
+  <!-- Analytics Modal -->
+  <div class="analytics-modal" id="analyticsModal">
+    <div class="analytics-content">
+      <div class="analytics-header">
+        <h2 class="analytics-title">Visitor Analytics Dashboard</h2>
+        <i class="fas fa-times close-modal" id="closeModal"></i>
+      </div>
+      
+      <div class="analytics-grid">
+        <div class="analytics-card">
+          <div class="analytics-card-title">Unique Visitors Today</div>
+          <div class="analytics-card-value" id="uniqueToday">0</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-card-title">Page Views Today</div>
+          <div class="analytics-card-value" id="pageViewsToday">0</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-card-title">Avg. Time on Site</div>
+          <div class="analytics-card-value" id="avgTime">0m</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-card-title">Bounce Rate</div>
+          <div class="analytics-card-value" id="bounceRate">0%</div>
+        </div>
+      </div>
+
+      <div class="analytics-chart">
+        <h3 class="chart-title">Visitor Trends (Last 7 Days)</h3>
+        <canvas id="visitorChart" width="400" height="200"></canvas>
+      </div>
+
+      <div class="analytics-chart">
+        <h3 class="chart-title">Top Referring Sites</h3>
+        <div id="referrers">
+          <p style="color: var(--text-secondary);">Loading referrer data...</p>
+        </div>
+      </div>
+
+      <div class="analytics-chart">
+        <h3 class="chart-title">Geographic Distribution</h3>
+        <div id="geoDistribution">
+          <p style="color: var(--text-secondary);">Loading geographic data...</p>
+        </div>
+      </div>
+
+      <div class="analytics-chart">
+        <h3 class="chart-title">Recent Visitors</h3>
+        <div id="recentVisitors">
+          <p style="color: var(--text-secondary);">Loading recent visitor data...</p>
+        </div>
+      </div>
+    </div>
+  </div>
