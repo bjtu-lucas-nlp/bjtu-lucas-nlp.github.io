@@ -109,27 +109,80 @@
 
       async getVisitorLocation() {
         try {
-          // For demo purposes, we'll simulate location data
-          // In production, you'd use a real IP geolocation API
-          const locations = [
-            'Sydney, Australia',
-            'Beijing, China',
-            'San Francisco, USA',
-            'London, UK',
-            'Tokyo, Japan',
-            'Toronto, Canada'
-          ];
-          const randomLocation = locations[Math.floor(Math.random() * locations.length)];
-          document.getElementById('locationText').textContent = randomLocation;
+          // Try multiple IP geolocation services for better reliability
+          let locationData = null;
           
-          // Save location data
-          const analytics = this.getAnalyticsData();
-          if (!analytics.locations[randomLocation]) {
-            analytics.locations[randomLocation] = 0;
+          // Try primary service - ipapi.co (free, no key required)
+          try {
+            const response = await fetch('https://ipapi.co/json/');
+            if (response.ok) {
+              const data = await response.json();
+              locationData = {
+                city: data.city,
+                country: data.country_name,
+                region: data.region,
+                countryCode: data.country_code,
+                ip: data.ip,
+                latitude: data.latitude,
+                longitude: data.longitude
+              };
+            }
+          } catch (e) {
+            console.log('Primary geolocation service failed, trying backup...');
           }
-          analytics.locations[randomLocation]++;
-          this.saveAnalyticsData(analytics);
+          
+          // Fallback to ip-api.com if primary fails
+          if (!locationData) {
+            try {
+              const response = await fetch('https://ip-api.com/json/');
+              if (response.ok) {
+                const data = await response.json();
+                if (data.status === 'success') {
+                  locationData = {
+                    city: data.city,
+                    country: data.country,
+                    region: data.regionName,
+                    countryCode: data.countryCode,
+                    ip: data.query,
+                    latitude: data.lat,
+                    longitude: data.lon
+                  };
+                }
+              }
+            } catch (e) {
+              console.log('Backup geolocation service also failed');
+            }
+          }
+          
+          // Display location or use fallback
+          if (locationData && locationData.city && locationData.country) {
+            const locationText = `${locationData.city}, ${locationData.country}`;
+            document.getElementById('locationText').textContent = locationText;
+            
+            // Save location data
+            const analytics = this.getAnalyticsData();
+            const locationKey = `${locationData.city}_${locationData.country}`;
+            if (!analytics.locations[locationKey]) {
+              analytics.locations[locationKey] = 0;
+            }
+            analytics.locations[locationKey]++;
+            
+            // Also store more detailed location info
+            if (!analytics.detailedLocations) {
+              analytics.detailedLocations = [];
+            }
+            analytics.detailedLocations.push({
+              ...locationData,
+              timestamp: Date.now()
+            });
+            
+            this.saveAnalyticsData(analytics);
+          } else {
+            // If geolocation fails completely, show a generic message
+            document.getElementById('locationText').textContent = 'Location detection disabled';
+          }
         } catch (error) {
+          console.error('Error getting visitor location:', error);
           document.getElementById('locationText').textContent = 'Location unavailable';
         }
       }
@@ -468,14 +521,20 @@
         `).join('');
         document.getElementById('referrers').innerHTML = referrersHtml;
         
-        // Update locations with demo data
-        const locationsData = report.locations.length > 0 ? report.locations : [
-          ['Sydney, Australia', 25],
-          ['Beijing, China', 18],
-          ['San Francisco, USA', 12],
-          ['London, UK', 8],
-          ['Tokyo, Japan', 5]
-        ];
+        // Update locations with real or demo data
+        const locationsData = report.locations.length > 0 ? report.locations : 
+          Object.keys(analytics.getAnalyticsData().locations).length > 0 ? 
+            Object.entries(analytics.getAnalyticsData().locations)
+              .map(([loc, count]) => [loc.replace('_', ', '), count])
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 5) :
+            [
+              ['Sydney, Australia', 25],
+              ['Beijing, China', 18],
+              ['San Francisco, USA', 12],
+              ['London, UK', 8],
+              ['Tokyo, Japan', 5]
+            ];
         
         const locationsHtml = locationsData.map(([location, count]) => `
           <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
@@ -581,6 +640,13 @@
       }
     `;
     document.head.appendChild(style);
+  </script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'GA_MEASUREMENT_ID'); // Replace with your actual GA ID
+  </script>
+  
   <!-- Microsoft Clarity (Optional - for heatmaps and session recordings) -->
   <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
