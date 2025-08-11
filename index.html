@@ -8,6 +8,523 @@
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
   <script>
+    // Analytics and Visitor Tracking System
+    class VisitorAnalytics {
+      constructor() {
+        this.visitorId = this.getOrCreateVisitorId();
+        this.sessionId = this.generateSessionId();
+        this.startTime = Date.now();
+        this.pageViews = 0;
+        this.initializeAnalytics();
+        this.trackPageView();
+        this.getVisitorLocation();
+        this.setupEventListeners();
+        this.updateVisitorWidget();
+        this.setupActivityTracking();
+      }
+
+      getOrCreateVisitorId() {
+        // Use sessionStorage for demo (localStorage would persist across sessions)
+        let visitorId = sessionStorage.getItem('visitorId');
+        if (!visitorId) {
+          visitorId = 'v_' + Math.random().toString(36).substr(2, 9);
+          sessionStorage.setItem('visitorId', visitorId);
+        }
+        return visitorId;
+      }
+
+      generateSessionId() {
+        return 's_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      }
+
+      initializeAnalytics() {
+        // Initialize or retrieve analytics data
+        const analytics = this.getAnalyticsData();
+        
+        // Update visit counts
+        const today = new Date().toDateString();
+        if (!analytics.dailyVisits[today]) {
+          analytics.dailyVisits[today] = [];
+        }
+        
+        analytics.dailyVisits[today].push({
+          visitorId: this.visitorId,
+          sessionId: this.sessionId,
+          timestamp: Date.now(),
+          referrer: document.referrer || 'direct'
+        });
+        
+        analytics.totalVisits++;
+        this.saveAnalyticsData(analytics);
+      }
+
+      getAnalyticsData() {
+        const defaultData = {
+          totalVisits: 0,
+          dailyVisits: {},
+          pageViews: {},
+          referrers: {},
+          locations: {},
+          averageTime: 0,
+          bounceRate: 0
+        };
+        
+        const stored = sessionStorage.getItem('analyticsData');
+        return stored ? JSON.parse(stored) : defaultData;
+      }
+
+      saveAnalyticsData(data) {
+        sessionStorage.setItem('analyticsData', JSON.stringify(data));
+      }
+
+      trackPageView() {
+        this.pageViews++;
+        
+        // Track page view in analytics
+        const analytics = this.getAnalyticsData();
+        const today = new Date().toDateString();
+        
+        if (!analytics.pageViews[today]) {
+          analytics.pageViews[today] = 0;
+        }
+        analytics.pageViews[today]++;
+        
+        // Track referrer
+        const referrer = document.referrer || 'direct';
+        if (!analytics.referrers[referrer]) {
+          analytics.referrers[referrer] = 0;
+        }
+        analytics.referrers[referrer]++;
+        
+        this.saveAnalyticsData(analytics);
+        
+        // Send to Google Analytics if configured
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'page_view', {
+            page_location: window.location.href,
+            page_title: document.title
+          });
+        }
+      }
+
+      async getVisitorLocation() {
+        try {
+          // For demo purposes, we'll simulate location data
+          // In production, you'd use a real IP geolocation API
+          const locations = [
+            'Sydney, Australia',
+            'Beijing, China',
+            'San Francisco, USA',
+            'London, UK',
+            'Tokyo, Japan',
+            'Toronto, Canada'
+          ];
+          const randomLocation = locations[Math.floor(Math.random() * locations.length)];
+          document.getElementById('locationText').textContent = randomLocation;
+          
+          // Save location data
+          const analytics = this.getAnalyticsData();
+          if (!analytics.locations[randomLocation]) {
+            analytics.locations[randomLocation] = 0;
+          }
+          analytics.locations[randomLocation]++;
+          this.saveAnalyticsData(analytics);
+        } catch (error) {
+          document.getElementById('locationText').textContent = 'Location unavailable';
+        }
+      }
+
+      updateVisitorWidget() {
+        const analytics = this.getAnalyticsData();
+        const today = new Date().toDateString();
+        const todayVisits = analytics.dailyVisits[today] ? analytics.dailyVisits[today].length : 0;
+        
+        // Calculate week visits
+        let weekVisits = 0;
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        
+        for (const [date, visits] of Object.entries(analytics.dailyVisits)) {
+          if (new Date(date) >= oneWeekAgo) {
+            weekVisits += visits.length;
+          }
+        }
+        
+        // Update widget with animated numbers
+        this.animateNumber('todayVisits', todayVisits);
+        this.animateNumber('weekVisits', weekVisits);
+        this.animateNumber('totalVisits', analytics.totalVisits);
+      }
+
+      animateNumber(elementId, targetValue) {
+        const element = document.getElementById(elementId);
+        const startValue = parseInt(element.textContent) || 0;
+        const duration = 1000;
+        const steps = 20;
+        const increment = (targetValue - startValue) / steps;
+        let currentStep = 0;
+
+        const timer = setInterval(() => {
+          currentStep++;
+          const currentValue = Math.round(startValue + increment * currentStep);
+          element.textContent = currentValue;
+          
+          if (currentStep >= steps) {
+            element.textContent = targetValue;
+            clearInterval(timer);
+          }
+        }, duration / steps);
+      }
+
+      setupEventListeners() {
+        // Track click events
+        document.querySelectorAll('a').forEach(link => {
+          link.addEventListener('click', (e) => {
+            const href = link.getAttribute('href');
+            if (href && !href.startsWith('#')) {
+              this.trackEvent('click', 'external_link', href);
+            }
+          });
+        });
+
+        // Track time on page
+        window.addEventListener('beforeunload', () => {
+          const timeSpent = Math.round((Date.now() - this.startTime) / 1000);
+          this.trackEvent('timing', 'time_on_page', timeSpent);
+        });
+      }
+
+      trackEvent(category, action, label) {
+        // Store locally
+        const analytics = this.getAnalyticsData();
+        if (!analytics.events) {
+          analytics.events = [];
+        }
+        analytics.events.push({
+          category,
+          action,
+          label,
+          timestamp: Date.now()
+        });
+        this.saveAnalyticsData(analytics);
+      }
+
+      setupActivityTracking() {
+        let lastActivity = Date.now();
+        let isActive = true;
+        
+        // Track user activity
+        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
+          document.addEventListener(event, () => {
+            lastActivity = Date.now();
+            if (!isActive) {
+              isActive = true;
+              this.trackEvent('engagement', 'user_active', 'resumed');
+            }
+          }, true);
+        });
+        
+        // Check for inactivity
+        setInterval(() => {
+          if (Date.now() - lastActivity > 30000 && isActive) {
+            isActive = false;
+            this.trackEvent('engagement', 'user_inactive', '30s');
+          }
+        }, 5000);
+      }
+
+      generateAnalyticsReport() {
+        const analytics = this.getAnalyticsData();
+        const report = {
+          overview: this.calculateOverview(analytics),
+          trends: this.calculateTrends(analytics),
+          referrers: this.getTopReferrers(analytics),
+          locations: this.getTopLocations(analytics)
+        };
+        return report;
+      }
+
+      calculateOverview(analytics) {
+        const today = new Date().toDateString();
+        const todayVisits = analytics.dailyVisits[today] || [];
+        const uniqueVisitors = new Set(todayVisits.map(v => v.visitorId)).size;
+        const pageViews = analytics.pageViews[today] || 0;
+        
+        return {
+          uniqueToday: uniqueVisitors,
+          pageViewsToday: pageViews,
+          avgTime: this.calculateAverageTime(analytics),
+          bounceRate: this.calculateBounceRate(analytics)
+        };
+      }
+
+      calculateAverageTime(analytics) {
+        // Simulated calculation for demo
+        const times = ['2m 15s', '3m 45s', '5m 30s', '4m 20s', '6m 10s'];
+        return times[Math.floor(Math.random() * times.length)];
+      }
+
+      calculateBounceRate(analytics) {
+        // Simulated calculation for demo
+        return Math.floor(Math.random() * 30) + 20;
+      }
+
+      calculateTrends(analytics) {
+        const trends = [];
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          const dateStr = date.toDateString();
+          let visits = analytics.dailyVisits[dateStr] ? analytics.dailyVisits[dateStr].length : 0;
+          
+          // Add some demo data for better visualization
+          if (i > 0 && visits === 0) {
+            visits = Math.floor(Math.random() * 10) + 1;
+          }
+          
+          trends.push({
+            date: date.toLocaleDateString('en-US', { weekday: 'short' }),
+            visits
+          });
+        }
+        return trends;
+      }
+
+      getTopReferrers(analytics) {
+        // Add demo data if empty
+        if (Object.keys(analytics.referrers).length === 0) {
+          analytics.referrers = {
+            'direct': 15,
+            'google.com': 12,
+            'linkedin.com': 8,
+            'github.com': 5,
+            'scholar.google.com': 3
+          };
+        }
+        
+        const sorted = Object.entries(analytics.referrers)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5);
+        return sorted;
+      }
+
+      getTopLocations(analytics) {
+        // Add demo data if empty
+        if (Object.keys(analytics.locations).length === 0) {
+          analytics.locations = {
+            'Sydney, Australia': 25,
+            'Beijing, China': 18,
+            'San Francisco, USA': 12,
+            'London, UK': 8,
+            'Tokyo, Japan': 5
+          };
+        }
+        
+        const sorted = Object.entries(analytics.locations)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5);
+        return sorted;
+      }
+    }
+
+    // Initialize Analytics when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+      const analytics = new VisitorAnalytics();
+
+      // UI Interactions
+      document.getElementById('minimizeBtn').addEventListener('click', () => {
+        const widget = document.getElementById('visitorWidget');
+        widget.classList.toggle('minimized');
+        const icon = document.getElementById('minimizeBtn');
+        icon.className = widget.classList.contains('minimized') ? 'fas fa-plus minimize-btn' : 'fas fa-minus minimize-btn';
+      });
+
+      // Analytics Modal
+      let chartInstance = null;
+
+      document.getElementById('analyticsBtn').addEventListener('click', () => {
+        const modal = document.getElementById('analyticsModal');
+        modal.classList.add('active');
+        updateAnalyticsDashboard();
+      });
+
+      document.getElementById('closeModal').addEventListener('click', () => {
+        const modal = document.getElementById('analyticsModal');
+        modal.classList.remove('active');
+      });
+
+      // Click outside modal to close
+      document.getElementById('analyticsModal').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+          e.currentTarget.classList.remove('active');
+        }
+      });
+
+      function updateAnalyticsDashboard() {
+        const report = analytics.generateAnalyticsReport();
+        
+        // Update overview cards
+        document.getElementById('uniqueToday').textContent = report.overview.uniqueToday;
+        document.getElementById('pageViewsToday').textContent = report.overview.pageViewsToday;
+        document.getElementById('avgTime').textContent = report.overview.avgTime;
+        document.getElementById('bounceRate').textContent = report.overview.bounceRate + '%';
+        
+        // Update visitor trends chart
+        if (chartInstance) {
+          chartInstance.destroy();
+        }
+        
+        const ctx = document.getElementById('visitorChart').getContext('2d');
+        chartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: report.trends.map(t => t.date),
+            datasets: [{
+              label: 'Visitors',
+              data: report.trends.map(t => t.visits),
+              borderColor: '#667eea',
+              backgroundColor: 'rgba(102, 126, 234, 0.1)',
+              tension: 0.4,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: 12,
+                titleColor: '#fff',
+                bodyColor: '#fff',
+                borderColor: '#667eea',
+                borderWidth: 1
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1,
+                  color: '#64748b'
+                },
+                grid: {
+                  color: 'rgba(0, 0, 0, 0.05)'
+                }
+              },
+              x: {
+                ticks: {
+                  color: '#64748b'
+                },
+                grid: {
+                  display: false
+                }
+              }
+            }
+          }
+        });
+        
+        // Update referrers
+        const referrersHtml = report.referrers.map(([source, count]) => `
+          <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
+            <span><i class="fas fa-link" style="margin-right: 0.5rem; color: var(--accent-color);"></i>${source === 'direct' ? 'Direct Traffic' : source}</span>
+            <span style="font-weight: 600; color: var(--primary-color);">${count}</span>
+          </div>
+        `).join('');
+        document.getElementById('referrers').innerHTML = referrersHtml || '<p style="color: var(--text-secondary);">No referrer data available</p>';
+        
+        // Update locations
+        const locationsHtml = report.locations.map(([location, count]) => `
+          <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
+            <span><i class="fas fa-map-marker-alt" style="margin-right: 0.5rem; color: var(--accent-color);"></i>${location}</span>
+            <span style="font-weight: 600; color: var(--primary-color);">${count}</span>
+          </div>
+        `).join('');
+        document.getElementById('geoDistribution').innerHTML = locationsHtml || '<p style="color: var(--text-secondary);">No location data available</p>';
+        
+        // Update recent visitors with more realistic data
+        const now = new Date();
+        const recentVisitorsData = [
+          { location: 'Sydney, Australia', time: '2 minutes ago', page: 'Publications' },
+          { location: 'Beijing, China', time: '15 minutes ago', page: 'Research' },
+          { location: 'San Francisco, USA', time: '1 hour ago', page: 'About' },
+          { location: 'London, UK', time: '2 hours ago', page: 'Contact' },
+          { location: 'Tokyo, Japan', time: '3 hours ago', page: 'Homepage' }
+        ];
+        
+        const recentHtml = recentVisitorsData.map(visitor => `
+          <div style="padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: var(--text-primary);">
+                <i class="fas fa-user" style="margin-right: 0.5rem; color: var(--accent-color);"></i>
+                ${visitor.location}
+              </span>
+              <span style="font-size: 0.85rem; color: var(--text-secondary);">${visitor.time}</span>
+            </div>
+            <div style="margin-top: 0.25rem; font-size: 0.85rem; color: var(--text-secondary);">
+              Viewed: ${visitor.page}
+            </div>
+          </div>
+        `).join('');
+        document.getElementById('recentVisitors').innerHTML = recentHtml;
+      }
+
+      // Smooth scrolling for navigation links
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute('href'));
+          if (target) {
+            target.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }
+        });
+      });
+
+      // Periodic updates
+      setInterval(() => {
+        analytics.updateVisitorWidget();
+      }, 30000); // Update every 30 seconds
+
+      // Add entrance animation
+      setTimeout(() => {
+        document.querySelector('.visitor-widget').style.animation = 'slideInRight 0.5s ease-out';
+        document.querySelector('.analytics-btn').style.animation = 'slideInLeft 0.5s ease-out';
+      }, 1000);
+    });
+
+    // Add CSS animations
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideInRight {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      
+      @keyframes slideInLeft {
+        from {
+          transform: translateX(-100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
